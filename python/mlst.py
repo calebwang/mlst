@@ -1,6 +1,8 @@
 import networkx as nx
 import nx_reader 
 import matplotlib.pyplot as plt
+import numpy as np
+import random
 
 def import_file(filename):
     """
@@ -109,14 +111,13 @@ def approximate_solution(graph):
                 best_edge = (n_largest, best_end)
                 best_score = best_subscore
         new_graph.add_edge(best_edge[0], best_edge[1])
-        print best_edge
 
-    print new_graph.edges()
     return new_graph
 
 def fast_approximate_solution(graph):
     """
     Given a graph, construct a solution greedily using approximation methods.
+    Performs roughly equal with approximate_solution in terms of optimality
     """
     new_graph = nx.Graph()
     degrees = nx.degree_centrality(graph) 
@@ -136,8 +137,7 @@ def fast_approximate_solution(graph):
         new_graph.add_node(next_largest)
         edge_end = argmax_in(degrees, possible_edge_ends)
         new_graph.add_edge(edge_end, next_largest)
-    print new_graph.edges()
-    draw(new_graph)
+
     return new_graph
 
 
@@ -150,10 +150,34 @@ def local_search(graph, solution):
 
 def test(p):
     g = generate_random_graph(p)
-    draw(g)
-    sol = approximate_solution(g)
-    draw(sol)
-    score = count_leaves(sol)
-    print "Number of leaves: " + str(score)
-    print "Number of leaves in MST solution: " + str(count_leaves(nx.minimum_spanning_tree(g)))
-    return g, score
+    if not nx.is_connected(g):
+        return None
+    aprx_score = count_leaves(approximate_solution(g))
+    fast_score = count_leaves(fast_approximate_solution(g))
+    mst_score = count_leaves(nx.minimum_spanning_tree(g))
+
+    print "Number of leaves in aprx: " + str(aprx_score)
+    print "Number of leaves in fast aprx: " + str(fast_score)
+    print "Number of leaves in MST solution: " + str(mst_score)
+    return aprx_score, fast_score, mst_score
+
+def run(g):
+    aprx_score = count_leaves(approximate_solution(g))
+    fast_score = count_leaves(fast_approximate_solution(g))
+    mst_score = count_leaves(nx.minimum_spanning_tree(g))
+    print "Number of leaves in aprx: " + str(aprx_score)
+    print "Number of leaves in fast aprx: " + str(fast_score)
+    print "Number of leaves in MST solution: " + str(mst_score)
+    return aprx_score, fast_score, mst_score
+
+def test_average(n):
+    totals = np.array([0, 0, 0])
+    for i in range(n):
+        results = test(random.randrange(5, 25)/100.0)
+        while results == None:
+            results = test(random.randrange(5, 25)/100.0)
+        results = np.array(results)
+        totals = totals + results
+
+    return totals/float(i)
+        
