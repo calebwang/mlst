@@ -6,15 +6,25 @@ import itertools as it
 from networkx.algorithms import bipartite
 
 def import_file(filename):
+    """
+    Read a hard.in file
+    """
     r = nx_reader.InFileReader(open(filename))
     graphs = r.read_input_file()
     return graphs
 
 def draw(graph):
+    """
+    Draw a graph.
+    """
     nx.draw(graph)
     plt.show()
 
 def argmax(dct, exceptions = []):
+    """
+    Find the key in a dictionary with the greatest value,
+    omitting keys in exceptions.
+    """
     if not dct:
         raise Exception("empty dictionary")
     max_value = 0
@@ -26,6 +36,10 @@ def argmax(dct, exceptions = []):
     return max_key
 
 def argmax_in(dct, valid_set, exceptions = []):
+    """
+    Find the key in a dictionary in a given set of keys with the greatest value,
+    omitting keys in exceptions.
+    """
     if not dct:
         raise Exception("empty dictionary")
     max_value = 0
@@ -36,13 +50,15 @@ def argmax_in(dct, valid_set, exceptions = []):
             max_key = k
     return max_key
 
-def solve_problem(graph):
+def approximate_solution(graph):
+    """
+    Given a graph, construct a solution greedily using approximation methods.
+    """
     new_graph = nx.Graph()
     degrees = nx.degree_centrality(graph) 
     largest = argmax(degrees)
     new_graph.add_node(largest)
     while new_graph.number_of_edges() < graph.number_of_nodes() - 1:
-        print new_graph.nodes()
         neighbor_list = [nx.neighbors(graph, n) for n in new_graph.nodes()]
         neighbors = set()
         for lst in neighbor_list:
@@ -54,11 +70,15 @@ def solve_problem(graph):
                               if graph.has_edge(n, next_largest) 
                               and n in new_graph.nodes()]
         new_graph.add_node(next_largest)
-        print possible_edge_ends
         edge_end = argmax_in(degrees, possible_edge_ends)
-        print edge_end, next_largest
         new_graph.add_edge(edge_end, next_largest)
     print new_graph.edges()
     draw(new_graph)
     return new_graph
 
+def local_search(graph, solution):
+    """
+    Given an original graph and a spanning tree of that graph,
+    perform local search to optimize given solution.
+    """
+    pass
