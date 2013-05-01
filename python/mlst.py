@@ -1,13 +1,11 @@
 import networkx as nx
 import nx_reader 
-import reader
 import matplotlib.pyplot as plt
-import itertools as it
-from networkx.algorithms import bipartite
 
 def import_file(filename):
     """
-    Read a hard.in file
+    Read a hard.in file,
+    return list of graphs from input
     """
     r = nx_reader.InFileReader(open(filename))
     graphs = r.read_input_file()
@@ -19,6 +17,18 @@ def draw(graph):
     """
     nx.draw(graph)
     plt.show()
+
+def generate_random_graph(p):
+    """Generate random graph with 100 vertices with 
+    p probability of edge creation
+    """
+    return nx.fast_gnp_random_graph(100, p)
+
+def count_leaves(graph):
+    """
+    Count leaves in graph
+    """
+    return len([n for n in graph if len(graph.neighbors(n)) == 1])
 
 def argmax(dct, exceptions = []):
     """
@@ -81,4 +91,12 @@ def local_search(graph, solution):
     Given an original graph and a spanning tree of that graph,
     perform local search to optimize given solution.
     """
-    pass
+    print "Before: " + str(count_leaves(solution))
+
+def test(p):
+    g = generate_random_graph(p)
+    sol = approximate_solution(g)
+    score = count_leaves(sol)
+    print "Number of leaves: " + str(score)
+    print "Number of leaves in MST solution: " + str(count_leaves(nx.minimum_spanning_tree(g)))
+    return g, score
