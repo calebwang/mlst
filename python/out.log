@@ -1,0 +1,38 @@
+2a3,4
+> import networkx as nx
+> import reader
+60a63
+>             print self.line, 'hi'
+78c81
+<         edge_sets = []
+---
+>         graphs = []
+81c84,85
+<             es = self.read_input_graph()
+---
+>             r = reader.InFileReader(self.file_obj)
+>             es = r.read_input_graph()
+84a89,90
+> 
+>             g = self.read_input_graph()
+90c96,97
+<             edge_sets.append(es)
+---
+>             graphs.append(g)
+> 
+99c106
+<         return edge_sets
+---
+>         return graphs
+108a116,118
+>         g = nx.Graph()
+>         g.add_nodes_from(range(0, 99))
+> 
+113a124,125
+>             g.add_edge(nums[0], nums[1])
+> 
+124,125c136
+< 
+<         return edge_set
+---
+>         return g
