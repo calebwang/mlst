@@ -129,6 +129,48 @@ def approximate_solution(graph):
 
     return new_graph
 
+def med_approximate_solution(graph):
+    """
+    Given a graph, construct a solution greedily using approximation methods.
+    Performs roughly equal with approximate_solution in terms of optimality
+    """
+    new_graph = nx.Graph()
+    degrees = nx.degree_centrality(graph) 
+    largest = argmax(degrees)
+    new_graph.add_node(largest)
+    while new_graph.number_of_edges() < graph.number_of_nodes() - 1:
+        neighbor_list = [nx.neighbors(graph, n) for n in new_graph.nodes()]
+        neighbors = set()
+        for lst in neighbor_list:
+            neighbors = neighbors.union(lst)
+        if not neighbors:
+            break
+        next_largest = argmax_in(degrees, neighbors, exceptions = new_graph.nodes())
+        possible_edge_ends = [n for n in nx.neighbors(graph, next_largest) 
+                              if graph.has_edge(n, next_largest) 
+                              and n in new_graph.nodes()]
+
+        new_graph.add_node(next_largest)
+        edge_end = argmax_in(degrees, possible_edge_ends)
+        
+        new_graph.add_edge(edge_end, next_largest)
+        best_subscore = count_leaves(new_graph)
+        best_end = edge_end
+        new_graph.remove_edge(edge_end, next_largest)
+
+        for end in possible_edge_ends:
+            new_graph.add_edge(end, next_largest)
+            subscore = count_leaves(new_graph)
+            if subscore > best_subscore:
+                best_end = end
+                best_subscore = subscore
+            new_graph.remove_edge(end, next_largest)
+       
+        new_graph.add_edge(best_end, next_largest)
+
+    return new_graph
+
+
 def fast_approximate_solution(graph):
     """
     Given a graph, construct a solution greedily using approximation methods.
@@ -224,17 +266,19 @@ def run(g):
     if not nx.is_connected(g):
         return None
     aprx_score = count_leaves(approximate_solution(g))
+    med_score = count_leaves(med_approximate_solution(g))
     fast_score = count_leaves(fast_approximate_solution(g))
     fast_score_two = count_leaves(fast_approximate_solution_two(g))
     mst_score = count_leaves(nx.minimum_spanning_tree(g))
     print "Number of leaves in aprx: " + str(aprx_score)
+    print "Number of leaves in med aprx: " + str(med_score)
     print "Number of leaves in fast aprx: " + str(fast_score)
     print "Number of leaves in fast2 aprx: " + str(fast_score_two)
     print "Number of leaves in MST solution: " + str(mst_score)
-    return g, aprx_score, fast_score, fast_score_two, mst_score
+    return g, aprx_score, med_score, fast_score, fast_score_two, mst_score
 
 def test_average(n):
-    totals = np.array([0, 0, 0, 0])
+    totals = np.array([0, 0, 0, 0, 0])
     for i in range(n):
         results = test(random.randrange(5, 15)/100.0)
         while results == None:
