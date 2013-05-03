@@ -297,15 +297,17 @@ def run(g):
     fns = [approximate_solution, med_approximate_solution, fast_approximate_solution, 
            fast_approximate_solution, nx.minimum_spanning_tree]
 
+    print '--------------------------'
     for f in fns:
         sol = f(g)
         score = count_leaves(sol)
+        print f.func_name, score
         if score > best:
             best = score
             best_fn = f.func_name
             best_sol = sol
 
-    print g, best_fn, best
+    print 'best: ', best_fn, best
 
     return g, best_sol, best_fn, best
 
