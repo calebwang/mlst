@@ -4,6 +4,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 import random
 import pickle
+import logging
+
+def process_file(filename):
+    out_file = filename.split('.in')[0] + '.out'
+    graphs = import_file(filename)
+    solutions = [run(g) for g in graphs)
+    write_output(solutions, out_file)
 
 def import_file(filename):
     """
@@ -41,16 +48,16 @@ def count_leaves(graph):
     """
     Count leaves in graph
     """
-    return len([n for n in graph if len(graph.neighbors(n)) == 1])
+    return len([n for n in graph.nodes() if len(graph.neighbors(n)) == 1])
 
 def get_leaves(graph):
-    return [n for n in graph if len(graph.neighbors(n)) == 1]
+    return [n for n in graph.nodes() if len(graph.neighbors(n)) == 1]
 
 def get_nonleaves(graph):
-    return [n for n in graph if len(graph.neighbors(n)) != 1]
+    return [n for n in graph.nodes() if len(graph.neighbors(n)) != 1]
 
 def get_vertices_with_degree(graph, degree):
-    return [n for n in graph if len(graph.neighbors(n)) == degree]
+    return [n for n in graph.nodes() if len(graph.neighbors(n)) == degree]
     
 def argmax(dct, exceptions = []):
     """
@@ -237,34 +244,120 @@ def fast_approximate_solution_two(graph):
 
 
 
-def local_search(graph, solution):
+def basic_local_search(graph, solution):
+
+    original = solution.copy()
+    before = count_leaves(solution)
+    best_solution = solution.copy()
+    best_leaves = count_leaves(best_solution)
+    for i in range(10):
+        best = count_leaves(solution)
+        candidates = set(get_vertices_with_degree(solution, 2))
+        leaves = set(get_vertices_with_degree(solution, 1))
+        leaf_neighbors = []
+        for leaf in leaves:
+            leaf_neighbors.extend(nx.neighbors(solution, leaf))
+        leaf_neighbors = set(leaf_neighbors)
+        vs = candidates.intersection(leaf_neighbors)
+        for v in vs:
+            leafs = [l for l in nx.neighbors(solution, v) if l in leaves]
+            if leafs:
+                leaf = leafs[0]
+            else:
+                break
+            solution.remove_edge(v, leaf)
+            neighbors = nx.neighbors(graph, leaf)
+            for neighbor in neighbors:
+                solution.add_edge(leaf, neighbor)
+                new = count_leaves(solution)
+                if new > best:
+                    best = new
+                else:
+                    solution.remove_edge(leaf, neighbor)
+            if not nx.is_connected(solution):
+                solution.add_edge(v, leaf)
+        if count_leaves(solution) < best_leaves:
+            solution = best_solution.copy()
+        elif count_leaves(solution) > best_leaves:
+            best_solution = solution.copy()
+            best_leaves = count_leaves(best_solution)
+
+    after = count_leaves(solution)
+    if before > after:
+        solution = original.copy()
+    if before != after:
+        print 'before/after: ', before, after
+    if before > after:
+        raise Exception('you dun goofed')
+    if not nx.is_connected(solution):
+        raise Exception('you dun goofed')
+    return solution
+
+def local_search(graph, solution, k_value = 5):
     """
     Given an original graph and a spanning tree of that graph,
     perform local search to optimize given solution.
     """
-    print "Before: " + str(count_leaves(solution))
-    best = count_leaves(solution)
-    candidates = set(get_vertices_with_degree(solution, 2))
-    leaves = get_leaves(solution)
-    leaf_neighbors = []
-    for leaf in leaves:
-        leaf_neighbors.extend(nx.neighbors(solution, leaf))
-    leaf_neighbors = set(leaf_neighbors)
-    vs = candidates.intersection(leaf_neighbors)
-    for v in vs:
-        leaf = [l for l in nx.neighbors(solution, v) if l in leaves][0]
-        solution.remove_edge(v, leaf)
-        neighbors = nx.neighbors(graph, leaf)
-        for neighbor in neighbors:
-            solution.add_edge(leaf, neighbor)
-            new = count_leaves(solution)
-            if new > best:
-                best = new
-            else:
-                solution.remove_edge(leaf, neighbor)
-        if not nx.is_connected(solution):
-            solution.add_edge(v, leaf)
-    print "After: " + str(count_leaves(solution))
+    
+    before = count_leaves(solution)
+    best_solution = solution.copy()
+    best_leaves = count_leaves(best_solution)
+    
+    ks = range(k_value)
+    temp = ks[:]
+    temp.reverse()
+    ks = ks + temp
+    for k in ks:
+        for i in range(5):
+            best = count_leaves(solution)
+            candidates = set(get_vertices_with_degree(solution, k + 1))
+            leaves = set(get_vertices_with_degree(solution, k))
+            leaf_neighbors = []
+            for leaf in leaves:
+                leaf_neighbors.extend(nx.neighbors(solution, leaf))
+            leaf_neighbors = set(leaf_neighbors)
+            vs = candidates.intersection(leaf_neighbors)
+            for v in vs:
+                leafs = [l for l in nx.neighbors(solution, v) if l in leaves]
+                if leafs:
+                    leaf = leafs[0]
+                else:
+                    break
+                solution.remove_edge(v, leaf)
+                neighbors = nx.neighbors(graph, leaf)
+                for neighbor in neighbors:
+                    solution.add_edge(leaf, neighbor)
+                    new = count_leaves(solution)
+                    if new > best:
+                        best = new
+                    else:
+                        solution.remove_edge(leaf, neighbor)
+                if not nx.is_connected(solution):
+                    solution.add_edge(v, leaf)
+            if count_leaves(solution) < best_leaves:
+                solution = best_solution.copy()
+            elif count_leaves(solution) > best_leaves:
+                best_solution = solution.copy()
+                best_leaves = count_leaves(best_solution)
+        if count_leaves(solution) < best_leaves:
+            solution = best_solution.copy()
+        elif count_leaves(solution) > best_leaves:
+            best_solution = solution.copy()
+            best_leaves = count_leaves(best_solution)
+    if count_leaves(solution) < best_leaves:
+        solution = best_solution.copy()
+    elif count_leaves(solution) > best_leaves:
+        best_solution = solution.copy()
+        best_leaves = count_leaves(best_solution)
+
+
+    after = count_leaves(solution)
+    if before != after:
+        print 'before/after: ', before, after
+    if before > after:
+        raise Exception('you dun goofed')
+    if not nx.is_connected(solution):
+        raise Exception('you dun goofed')
     return solution
 
 
@@ -295,12 +388,18 @@ def run(g):
     best_sol = None
 
     fns = [approximate_solution, med_approximate_solution, fast_approximate_solution, 
-           fast_approximate_solution, nx.minimum_spanning_tree]
+           fast_approximate_solution_two, nx.minimum_spanning_tree]
 
     print '--------------------------'
     for f in fns:
         sol = f(g)
         score = count_leaves(sol)
+
+        new_sol = basic_local_search(g, sol.copy())
+        if count_leaves(new_sol) > score:
+            score = count_leaves(new_sol)
+            sol = new_sol
+
         print f.func_name, score
         if score > best:
             best = score
@@ -309,8 +408,10 @@ def run(g):
 
     print 'best: ', best_fn, best
 
-    return g, best_sol, best_fn, best
+    return best_sol
 
+def run_multiple(graphs):
+    return [run(g) for g in graphs]
 def test_average(n):
     totals = np.array([0, 0, 0, 0, 0])
     for i in range(n):
