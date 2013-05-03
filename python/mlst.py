@@ -3,6 +3,7 @@ import nx_reader
 import matplotlib.pyplot as plt
 import numpy as np
 import random
+import pickle
 
 def import_file(filename):
     """
@@ -12,6 +13,16 @@ def import_file(filename):
     r = nx_reader.InFileReader(open(filename))
     graphs = r.read_input_file()
     return graphs
+
+def write_output(graphs, out_file):
+    with open(out_file, 'w') as f:
+        header = str(len(graphs))
+        f.write(header + '\n')
+        for graph in graphs:
+            num_edges = str(graph.number_of_edges())
+            f.write(num_edges + '\n')
+            for edge in graph.edges():
+                f.write( str(edge[0]) + ' ' + str(edge[1]) + '\n' )
 
 def draw(graph):
     """
@@ -259,10 +270,9 @@ def local_search(graph, solution):
 
 def test(p):
     g = generate_random_graph(p)
+    return test_run(g)
 
-    return run(g)
-
-def run(g):
+def test_run(g):
     if not nx.is_connected(g):
         return None
     aprx_score = count_leaves(approximate_solution(g))
@@ -276,6 +286,28 @@ def run(g):
     print "Number of leaves in fast2 aprx: " + str(fast_score_two)
     print "Number of leaves in MST solution: " + str(mst_score)
     return g, aprx_score, med_score, fast_score, fast_score_two, mst_score
+
+def run(g):
+    if not nx.is_connected(g):
+        return None
+    best = 0
+    best_fn = None
+    best_sol = None
+
+    fns = [approximate_solution, med_approximate_solution, fast_approximate_solution, 
+           fast_approximate_solution, nx.minimum_spanning_tree]
+
+    for f in fns:
+        sol = f(g)
+        score = count_leaves(sol)
+        if score > best:
+            best = score
+            best_fn = f.func_name
+            best_sol = sol
+
+    print g, best_fn, best
+
+    return g, best_sol, best_fn, best
 
 def test_average(n):
     totals = np.array([0, 0, 0, 0, 0])
