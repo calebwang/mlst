@@ -9,7 +9,7 @@ import logging
 def process_file(filename):
     out_file = filename.split('.in')[0] + '.out'
     graphs = import_file(filename)
-    solutions = [run(g) for g in graphs)
+    solutions = [run(g) for g in graphs]
     write_output(solutions, out_file)
 
 def import_file(filename):
