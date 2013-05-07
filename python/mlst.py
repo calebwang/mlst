@@ -31,6 +31,11 @@ def write_output(graphs, out_file):
             for edge in graph.edges():
                 f.write( str(edge[0]) + ' ' + str(edge[1]) + '\n' )
 
+def process_file(filename):
+    graphs = import_file(filename)
+    solutions = run_multiple(graphs)
+    return solutions
+
 def draw(graph):
     """
     Draw a graph.
@@ -413,6 +418,7 @@ def run(g):
 
 def run_multiple(graphs):
     return [run(g) for g in graphs]
+
 def test_average(n):
     totals = np.array([0, 0, 0, 0, 0])
     for i in range(n):
